@@ -1,0 +1,40 @@
+name: quality-gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup-uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: install-python
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: install
+        run: uv sync --dev -p ${{ matrix.python-version }}
+
+      - name: ruff
+        run: |
+          uv run -p ${{ matrix.python-version }} ruff check .
+          uv run -p ${{ matrix.python-version }} ruff format --check .
+
+      - name: mypy
+        run: uv run -p ${{ matrix.python-version }} mypy src
+
+      - name: tests
+        run: uv run -p ${{ matrix.python-version }} pytest --cov --cov-fail-under=85

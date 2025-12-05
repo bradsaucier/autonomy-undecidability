@@ -9,7 +9,17 @@ from .machine import Machine, MachineProgram
 from .reduction import ReductionController
 
 
-def build_default_environment() -> Environment:
+def build_default_environment(preset: str) -> Environment:
+    if preset == "open":
+        rows = [
+            ".....",
+            ".....",
+            ".....",
+            ".....",
+            "....G",
+        ]
+        return Environment.from_strings(rows, start=(0, 0))
+
     rows = [
         "..X..",
         ".H.X.",
@@ -22,6 +32,7 @@ def build_default_environment() -> Environment:
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="autonomy-demo", add_help=True)
+    p.add_argument("--preset", choices=["default", "open"], default="default")
     p.add_argument("--program", choices=["halt", "loop"], required=True)
     p.add_argument("--x", type=int, default=10)
     p.add_argument("--bound", type=int, default=200)
@@ -32,7 +43,7 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
-    env = build_default_environment()
+    env = build_default_environment(args.preset)
 
     program = MachineProgram.HALT if args.program == "halt" else MachineProgram.LOOP
     m = Machine(program=program, x=args.x)

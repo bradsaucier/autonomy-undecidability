@@ -19,3 +19,12 @@ def test_out_of_bounds_raises() -> None:
     env = Environment.from_strings([".."], start=(0, 0))
     with pytest.raises(IndexError):
         _ = env.at(2, 2)
+
+
+def test_render_renders_agent_and_cells() -> None:
+    env = Environment.from_strings([".G", "HX"], start=(0, 0))
+    rendered = env.render((1, 0))
+
+    lines = rendered.splitlines()
+    assert lines[0] == ".G"
+    assert lines[1] == "AX"

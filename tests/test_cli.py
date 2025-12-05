@@ -19,8 +19,20 @@ def test_parse_args_minimal() -> None:
 
 
 def test_main_outputs_summary(capsys: pytest.CaptureFixture[str]) -> None:
-    rc = main(["--program", "halt", "--x", "1", "--bound", "10", "--max-steps", "5"])
+    rc = main(
+        [
+            "--program",
+            "halt",
+            "--x",
+            "1",
+            "--bound",
+            "10",
+            "--max-steps",
+            "5",
+        ]
+    )
     assert rc == 0
+
     out = capsys.readouterr().out
     assert re.search(r"^safe=(True|False)$", out, flags=re.MULTILINE)
     assert re.search(r"^success=(True|False)$", out, flags=re.MULTILINE)

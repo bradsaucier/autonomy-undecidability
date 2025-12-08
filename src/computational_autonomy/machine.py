@@ -38,12 +38,8 @@ class Machine:
         if self.program == MachineProgram.LOOP:
             return None
 
-        steps = 0
-        value = self.x
-        while steps < bound:
-            if value <= 0:
-                return 0
-            value -= 1
-            steps += 1
-
-        return 0 if value <= 0 else None
+        # HALT: decrement x once per step until it reaches 0.
+        # It halts within the bound iff bound >= x when x > 0.
+        if self.x <= 0:
+            return 0
+        return 0 if bound >= self.x else None

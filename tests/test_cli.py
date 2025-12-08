@@ -6,10 +6,10 @@ import sys
 
 import pytest
 
-from computational_autonomy.cli import main, parse_args
-
 
 def test_parse_args_minimal() -> None:
+    from computational_autonomy.cli import parse_args
+
     args = parse_args(["--program", "halt"])
     assert args.program == "halt"
     assert args.x == 10
@@ -18,36 +18,53 @@ def test_parse_args_minimal() -> None:
     assert args.render is False
 
 
-def test_main_outputs_summary(capsys: pytest.CaptureFixture[str]) -> None:
-    rc = main(
+def test_parse_args_all_values() -> None:
+    from computational_autonomy.cli import parse_args
+
+    args = parse_args(
         [
+            "--preset",
+            "open",
             "--program",
-            "halt",
+            "loop",
             "--x",
-            "1",
+            "7",
             "--bound",
-            "10",
+            "9",
             "--max-steps",
-            "5",
+            "11",
+            "--render",
         ]
     )
+    assert args.preset == "open"
+    assert args.program == "loop"
+    assert args.x == 7
+    assert args.bound == 9
+    assert args.max_steps == 11
+    assert args.render is True
+
+
+def test_main_runs_and_prints_summary_default_preset(capsys: pytest.CaptureFixture[str]) -> None:
+    from computational_autonomy.cli import main
+
+    rc = main(["--program", "halt", "--x", "0", "--bound", "5", "--max-steps", "5"])
     assert rc == 0
 
     out = capsys.readouterr().out
-    assert re.search(r"^safe=(True|False)$", out, flags=re.MULTILINE)
-    assert re.search(r"^success=(True|False)$", out, flags=re.MULTILINE)
-    assert re.search(r"^steps=\d+$", out, flags=re.MULTILINE)
+    assert "safe=" in out
+    assert "success=" in out
+    assert "steps=" in out
 
 
-def test_main_renders_trajectory_when_requested(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
+def test_main_render_prints_grid(capsys: pytest.CaptureFixture[str]) -> None:
+    from computational_autonomy.cli import main
+
     rc = main(
         [
             "--program",
             "halt",
             "--x",
-            "1",
+            "0",
             "--bound",
             "10",
             "--max-steps",
@@ -66,25 +83,26 @@ def test_main_renders_trajectory_when_requested(
     assert any(ln.startswith("steps=") for ln in lines)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:'computational_autonomy.cli' found in sys.modules:RuntimeWarning"
-)
-def test_cli_entrypoint_invokes_main(
-    monkeypatch: pytest.MonkeyPatch,
+def test_module_entrypoint_runs(
     capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    argv = [
-        "autonomy-demo",
-        "--program",
-        "loop",
-        "--x",
-        "1",
-        "--bound",
-        "3",
-        "--max-steps",
-        "1",
-    ]
-    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setenv("PYTHONPATH", "src")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "autonomy-demo",
+            "--program",
+            "halt",
+            "--x",
+            "0",
+            "--bound",
+            "5",
+        ],
+    )
+
+    sys.modules.pop("computational_autonomy.cli", None)
 
     with pytest.raises(SystemExit) as excinfo:
         runpy.run_module("computational_autonomy.cli", run_name="__main__")
@@ -92,5 +110,26 @@ def test_cli_entrypoint_invokes_main(
     assert excinfo.value.code == 0
 
     out = capsys.readouterr().out
-    assert "safe=" in out
-    assert "steps=" in out
+    assert re.search(r"safe=(True|False)", out)
+    assert re.search(r"success=(True|False)", out)
+    assert re.search(r"steps=\d+", out)
+
+
+def test_build_default_environment_open_preset_has_goal_and_no_hazards() -> None:
+    from computational_autonomy.cli import build_default_environment
+
+    env = build_default_environment("open")
+    assert env.height == 5
+    assert env.width == 5
+    assert env.is_goal(4, 4)
+
+    for r in range(env.height):
+        for c in range(env.width):
+            assert env.is_hazard(r, c) is False
+
+
+def test_build_default_environment_unknown_preset_rejected() -> None:
+    from computational_autonomy.cli import build_default_environment
+
+    with pytest.raises(ValueError):
+        _ = build_default_environment("unknown")

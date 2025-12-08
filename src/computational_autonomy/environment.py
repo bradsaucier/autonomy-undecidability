@@ -63,7 +63,25 @@ class Environment:
 
     @staticmethod
     def from_strings(rows: Iterable[str], start: Tuple[int, int]) -> Environment:
-        grid: List[List[Cell]] = []
-        for row in rows:
-            grid.append([Cell(ch) for ch in row])
+        row_list = list(rows)
+        if not row_list:
+            raise ValueError("rows must be non-empty")
+
+        if any(row == "" for row in row_list):
+            raise ValueError("rows must not contain empty strings")
+
+        width = len(row_list[0])
+        if width == 0:
+            raise ValueError("rows must not contain empty strings")
+
+        for row in row_list:
+            if len(row) != width:
+                raise ValueError("rows must be rectangular")
+
+        grid: List[List[Cell]] = [[Cell(ch) for ch in row] for row in row_list]
+
+        sr, sc = start
+        if sr < 0 or sc < 0 or sr >= len(grid) or sc >= width:
+            raise ValueError("start must be in bounds")
+
         return Environment(grid=grid, start=start)

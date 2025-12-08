@@ -28,3 +28,23 @@ def test_render_renders_agent_and_cells() -> None:
     lines = rendered.splitlines()
     assert lines[0] == ".G"
     assert lines[1] == "AX"
+
+
+def test_from_strings_rejects_empty_rows() -> None:
+    with pytest.raises(ValueError):
+        _ = Environment.from_strings([], start=(0, 0))
+
+
+def test_from_strings_rejects_empty_row_strings() -> None:
+    with pytest.raises(ValueError):
+        _ = Environment.from_strings([""], start=(0, 0))
+
+
+def test_from_strings_rejects_nonrectangular_rows() -> None:
+    with pytest.raises(ValueError):
+        _ = Environment.from_strings(["..", "."], start=(0, 0))
+
+
+def test_from_strings_rejects_start_out_of_bounds() -> None:
+    with pytest.raises(ValueError):
+        _ = Environment.from_strings([".."], start=(0, 2))

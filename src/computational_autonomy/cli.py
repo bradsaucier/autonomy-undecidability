@@ -2,32 +2,47 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Sequence
+from typing import Sequence, TypedDict
 
 from .environment import Environment
 from .machine import Machine, MachineProgram
 from .reduction import ReductionController
 
 
-def build_default_environment(preset: str) -> Environment:
-    if preset == "open":
-        rows = [
-            ".....",
-            ".....",
-            ".....",
-            ".....",
-            "....G",
-        ]
-        return Environment.from_strings(rows, start=(0, 0))
+class PresetSpec(TypedDict):
+    rows: list[str]
+    start: tuple[int, int]
 
-    rows = [
-        "..X..",
-        ".H.X.",
-        "..X..",
-        ".X..G",
-        ".....",
-    ]
-    return Environment.from_strings(rows, start=(0, 0))
+
+def build_default_environment(preset: str) -> Environment:
+    presets: dict[str, PresetSpec] = {
+        "open": {
+            "rows": [
+                ".....",
+                ".....",
+                ".....",
+                ".....",
+                "....G",
+            ],
+            "start": (0, 0),
+        },
+        "default": {
+            "rows": [
+                "..X..",
+                ".H.X.",
+                "..X..",
+                ".X..G",
+                ".....",
+            ],
+            "start": (0, 0),
+        },
+    }
+
+    spec = presets.get(preset)
+    if spec is None:
+        raise ValueError(f"unknown preset: {preset!r}")
+
+    return Environment.from_strings(spec["rows"], start=spec["start"])
 
 
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -45,7 +60,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
     env = build_default_environment(args.preset)
 
-    program = MachineProgram.HALT if args.program == "halt" else MachineProgram.LOOP
+    program = MachineProgram(args.program)
     m = Machine(program=program, x=args.x)
     rc = ReductionController(machine=m, bound=args.bound)
 

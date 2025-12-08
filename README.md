@@ -3,108 +3,159 @@
 
 # Computational Autonomy and Undecidability
 
-## 1. Mission Overview
+## Mission overview (first 60 seconds)
 
-Objective: Demonstrate the theoretical limits of verifying autonomous software using an executable bounded reduction.
+Objective - Illustrate the theoretical limits of verifying autonomous software by enacting a bounded reduction.
 
-Why this matters: Modern autonomous systems, from robotics to safety critical AI, cannot rely on a universal algorithm that proves they will always behave safely for all time and all inputs. This repository shows, in executable form, why that guarantee is mathematically blocked at the unbounded level and how real systems fall back to bounded checks and constrained models instead.
+Core claim - If "full computational autonomy" is modeled as a nontrivial semantic property of program behavior, then no algorithm can decide it for all programs and inputs (Rice's Theorem). This repo shows the reduction pattern in runnable form, then makes the bounds explicit.
 
-Rice's Theorem dictates that nontrivial semantic properties of program behavior are undecidable. Modeling Computational Autonomy as such a property means no universal algorithm can decide it for all programs and all inputs.
+What you will do here - Run a small Python demo that:
+- Simulates a toy program `P(x)` for at most `B` steps (bounded halting check).
+- Chooses one of two controller policies based on that bounded outcome.
+- Runs a finite grid-world episode and reports whether the agent was safe and reached the goal (bounded autonomy check).
 
-This repository provides an executable bounded illustration of a reduction from the Halting Problem to a simplified autonomy property. You can run the demo, observe the branch on bounded halting behavior, and trace the logic in both code and supporting theory.
+System requirements - Python 3.10+ (CI runs 3.10, 3.11, 3.12). The repo defaults to Python 3.12 via `.python-version`.
 
-Constraints:
+## Choose your path (hub and spoke)
 
-- Bounded execution only: all simulations run under an explicit step bound B.
-- No halting solver: this code does not decide the Halting Problem. It illustrates why unbounded autonomy guarantees are out of reach while bounded checks remain decidable.
+- Quick start (run it now) - [Execution](#execution-quick-start)
+- Trace the reduction (theory to code) - [Concept of operations](#concept-of-operations-conops)
+- Audit scope and limits (skeptic mode) - [Scope and constraints](#scope-and-constraints)
+- Read the proof sketch - [Theory notes](#theory-notes)
+- Navigate the codebase - [Repository map](#repository-map)
 
-Time on target:
+## Scope and constraints
 
-- 2 to 5 minutes: run the quick start cases.
-- 15 to 30 minutes: read the reduction code and map it to the diagram.
-- 60 to 120 minutes: study the theory notes.
+This README is a funnel, not a filter. Two statements are non-negotiable:
 
-Prerequisites:
+1) This repository does not solve the Halting Problem.
+- It implements an exact bounded check: "halts within B steps" vs "has not halted within B steps yet."
 
-- Comfortable with basic Python tooling (virtual environments, pip).
-- Familiarity with Turing machines, the Halting Problem, and decidability.
-- Able to follow a standard many-one reduction argument.
+2) This repository is not a safety certification tool for real autonomous systems.
+- The environment is a fixed toy grid world to make the reduction structure inspectable.
+- Any language about "autonomy" is computational and semantic, not a claim about real-world operational safety.
 
-## 2. Capability Profile
+What you can verify here (bounded):
+- Given a chosen witness program and input, whether `P(x)` halts within `B` steps.
+- Given the constructed controller and a finite episode limit, whether the agent stays safe and reaches the goal.
+
+What you cannot verify here (unbounded):
+- Whether an arbitrary program halts (full halting).
+- Whether an arbitrary agent is safe and reaches the goal for all time and all inputs (full computational autonomy).
+
+Non-affiliation - This is personal academic work. It is not affiliated with, endorsed by, funded by, or representative of any employer, government organization, or agency. See [DISCLAIMER.md](DISCLAIMER.md).
+
+## Execution - Quick start
+
+The CI pipeline uses `uv` for reproducible installs and runs. The fastest path is to match CI.
+
+### Option A (recommended) - `uv` workflow (matches CI)
+
+1) Install `uv`:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+2) Create a locked environment and install (dev tools optional):
+```bash
+uv sync
+# For linting, typing, and tests:
+uv sync --dev
+```
+
+3) Run the two canonical cases:
+```bash
+uv run autonomy-demo --program halt --x 10 --bound 200 --max-steps 60 --render
+uv run autonomy-demo --program loop --x 10 --bound 200 --max-steps 60 --render
+```
+
+Note on the `loop` case:
+- For the provided `loop` witness, the correct bounded outcome is "did not halt within B steps."
+- For an arbitrary program, "did not halt within B steps" is a timeout observation, not a proof of infinite looping.
+
+### Option B (fallback) - classic `venv` + `pip`
+
+Unix:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
+autonomy-demo --program halt --x 10 --bound 200 --max-steps 60 --render
+```
+
+Windows PowerShell:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install .
+autonomy-demo --program halt --x 10 --bound 200 --max-steps 60 --render
+```
+
+If activation fails due to ExecutionPolicy, run:
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+```
+
+Development install (pip):
+```bash
+pip install -e ".[dev]"
+```
+
+## How to interpret outputs
+
+The CLI prints three summary lines:
+
+- `safe=True|False`
+  - True means the agent never entered a hazard cell.
+- `success=True|False`
+  - True means the agent reached the goal and emitted the success signal.
+  - In this reduction, `success=True` is expected for a halting witness (within bounds).
+  - `success=False` is expected for a non-halting or timeout witness (within bounds), because the inert policy fails liveness by design.
+- `steps=<int>`
+  - The number of environment ticks executed before termination.
+
+Important nuance:
+- `success=False` does not distinguish "infinite loop" from "halts after B+1 steps." It only indicates "no halting was observed within the bound."
+
+Example pattern (your exact grids and step counts may differ):
+```text
+safe=True
+success=True
+steps=8
+```
+
+## Capability profile
 
 This project distinguishes two levels of autonomy reasoning:
 
-- Computational Autonomy  
-  The unbounded semantic property: for all time and all inputs, the agent always achieves the objective while remaining safe. This is an undecidable property in the sense of Rice's Theorem.
+1) Bounded halting
+- Given `P`, `x`, and step bound `B`: does `P(x)` halt within `B` steps.
 
-- Bounded Autonomy  
-  The finite, operational property implemented here: given explicit bounds, does the constructed controller both stay safe and reach the goal within those limits. This bounded property is decidable.
+2) Bounded autonomy
+- Given the constructed controller and environment: does the agent remain safe and reach the goal within finite limits.
 
-The code implements a bounded reduction pattern:
+The theoretical target is "computational autonomy" as an unbounded semantic property. The executable artifact is the bounded version above.
 
-- Input: program P, input x, and step bound B.
-- Mechanism: simulate P(x) for B steps, then select a policy based on the bounded halting outcome.
-- Outcome: the Bounded Autonomy result in the grid world is tied directly to whether P(x) halts within B.
+## Concept of operations (CONOPS)
 
-This pattern mirrors how real systems secure guarantees in practice: under time limits, finite models, and explicit constraints.
+### Reduction plan (operational description)
 
-## 3. Concept of Operations
+- Input `P` and `x`.
+- Simulate `P(x)` for `B` steps.
+- If `P(x)` halts within `B`, select Goal Seeking Policy.
+- If `P(x)` does not halt within `B`, treat that as a timeout at the bound and select Inert Policy (fails liveness by design).
+- Run the controller in the grid world for at most `max-steps` and evaluate bounded autonomy.
 
-### 3.1 Bounded reduction pattern
+Bounded simulation and policy selection are decidable and fully implemented. The undecidability enters only when you lift the bounds and ask for a universal procedure over all programs and all time.
 
-The software implements a standard many-one reduction structure in bounded form.
-
-Decision problems in this demo:
-
-1. Bounded halting  
-   Given P, x, and step bound B: does P(x) halt within B steps.
-
-2. Bounded autonomy  
-   Given the constructed controller and environment: does the agent remain safe and reach the goal within finite limits.
-
-Reduction plan:
-
-1. Controller executes a bounded simulation of P(x) with limit B steps.
-2. HALT detected within B: engage Goal Seeking Policy.
-3. TIMEOUT at B without halting: engage Inert Policy that fails liveness by design.
-4. Environment runs a finite episode and evaluates the Bounded Autonomy property.
-
-Autonomy evaluation criteria:
-
-- Safety: the agent never enters a hazard cell.
-- Liveness: the agent reaches a goal cell within max_steps and emits a success signal.
-
-Policies:
-
-- Goal Seeking Policy: a simple greedy controller tuned to the fixed environment that attempts to reach the goal while staying out of hazards.
-- Inert Policy: an inert controller that does not make progress and fails liveness by design while remaining safe.
-
-### 3.2 Autonomy terminology
-
-This project uses the following key terms:
-
-1. Semantic property  
-   A property of what a program computes or how it behaves, not how its source code is written.
-
-2. Computational Autonomy  
-   The theoretical, unbounded semantic property: the agent always achieves the objective safely across all time and all inputs. Undecidable by Rice's Theorem.
-
-3. Bounded Autonomy  
-   The operational property implemented by this demo: under explicit bounds (simulation bound B and episode bound max_steps), the agent remains safe and reaches the goal.
-
-You can state the relationship as:
-
-- There is no universal procedure that decides Computational Autonomy for arbitrary programs.
-- This repository implements an exact bounded check for Bounded Autonomy tied to a bounded halting condition.
-
-### 3.3 Visual flow
+### Visual flow
 
 ```mermaid
 flowchart TD
   P[Program P and input x]
   Sim[Simulate P for B steps]
   Halt[Halts within B]
-  NoHalt[Does not halt within B]
+  NoHalt[No halt observed within B]
   Goal[Run Goal Seeking Policy]
   Inert[Run Inert Policy]
   Eval[Evaluate Bounded Autonomy]
@@ -118,255 +169,164 @@ flowchart TD
   Inert --> Eval
 ```
 
-Text fallback:
+### Key terminology (plain language, then tight)
 
-- Input P and x.
-- Simulate P(x) for B steps.
-- If P(x) halts within B, select Goal Seeking Policy.
-- If P(x) does not halt within B, select Inert Policy.
-- Run the controller in the grid world and evaluate Bounded Autonomy.
+Undecidability (plain):
+- A problem is undecidable if no program can solve it correctly for every possible input. This is not "slow" or "hard." It is impossible in principle.
 
-Simulation and branch selection are both decidable and fully implemented. The undecidability enters only when you lift the bounds and ask for a universal procedure over all programs and all time.
+Undecidability (tight):
+- A language `L` is undecidable if there is no Turing machine that halts on all inputs and correctly decides membership in `L`.
 
-## 4. Execution - Quick start
+Rice's Theorem (plain):
+- You cannot build a universal static checker that decides nontrivial behavioral properties of programs. If the property depends on what the program does (not how it is written), and it is true for some programs but not all, then there is no general decider.
 
-Run these steps in a clean Python environment.
+Rice's Theorem (tight):
+- For any nontrivial set of partial computable functions `S` (neither empty nor all of them), the problem of deciding whether a given program computes a function in `S` is undecidable.
 
-### 4.1 Create a virtual environment
+Many-one reduction (plain):
+- A reduction converts instances of one problem into instances of another. If you could solve the second, you could solve the first. If the first is impossible, the second must also be impossible.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
+Many-one reduction (tight):
+- `A <=m B` if there exists a computable function `f` such that for all strings `w`, `w in A` iff `f(w) in B`.
 
-Windows PowerShell:
+Semantic property (plain):
+- A property about what a program does (its behavior), not the exact source code text.
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
+Computational autonomy (this repo's usage):
+- The unbounded semantic property: the agent always achieves the objective safely across all time and inputs. Undecidable by Rice's Theorem when formalized as a nontrivial semantic property.
 
-### 4.2 Install for users
+Bounded autonomy (this repo's implementation):
+- The operational property checked by this demo: under explicit bounds (`B` and `max-steps`), the agent remains safe and reaches the goal.
 
-```bash
-pip install .
-```
+## Theory to code traceability (claim - location - observation)
 
-### 4.3 Install for development
+Use this to connect the math story to concrete artifacts.
 
-Use this when you want to run tests, type checks, and linters:
+| Claim / artifact | Where in code | What you can observe |
+| --- | --- | --- |
+| Bounded halting check: halt within B vs timeout at B | `src/computational_autonomy/machine.py` | `--bound B` affects whether the controller branches to goal-seeking vs inert |
+| Reduction branch (policy selection) | `src/computational_autonomy/reduction.py` | Halting witness within bound tends to produce `success=True`; timeout within bound tends to produce `success=False` |
+| Safety and liveness evaluation | `src/computational_autonomy/environment.py` | CLI prints `safe=...`, `success=...`, `steps=...` |
+| CLI wiring and defaults | `src/computational_autonomy/cli.py` | Defaults: `x=10`, `bound=200`, `max-steps=60` |
 
-```bash
-pip install -e ".[dev]"
-```
+## Execution details (CLI reference)
 
-Windows PowerShell variant:
-
-```powershell
-pip install -e ".[dev]"
-```
-
-### 4.4 Run a bounded halting case
-
+Console script:
 ```bash
 autonomy-demo --program halt --x 10 --bound 200 --max-steps 60 --render
 ```
 
-This simulates a program that halts. The controller selects the Goal Seeking Policy and attempts to reach the goal safely.
-
-### 4.5 Run a non halting case under the same bound
-
-```bash
-autonomy-demo --program loop --x 10 --bound 200 --max-steps 60 --render
-```
-
-This simulates a program that loops. The controller selects the Inert Policy and does not reach the goal.
-
-### 4.6 Example outputs
-
-Halting case (success=True)
-
-```text
-$ autonomy-demo --program halt --x 10 --bound 200 --max-steps 60 --render
-.....
-....A
-....G
-.....
-.....
-
-safe=True
-success=True
-steps=8
-```
-
-Non halting case (success=False)
-
-```text
-$ autonomy-demo --program loop --x 10 --bound 200 --max-steps 60 --render
-safe=True
-success=False
-steps=20
-```
-
-Exact grids and step counts may differ with configuration, but the pattern should match: halting runs reach the goal under the bound, non halting runs remain inert and fail liveness.
-
-## 5. CLI reference
-
-### 5.1 Console script
-
-```bash
-autonomy-demo --program halt --x 10 --bound 200 --max-steps 60 --render
-```
-
-### 5.2 Module invocation
-
+Module invocation:
 ```bash
 python -m computational_autonomy.cli --program halt --x 10 --bound 200 --max-steps 60 --render
 ```
 
-### 5.3 Argument summary
-
-- --program  
-  Selects a sample machine program, for example halt or loop.
-
-- --x  
-  Input value to the machine program.
-
-- --bound  
-  Step bound B for the bounded machine simulation. If P(x) has not halted after B steps, the simulation reports a timeout, not a proof of non halting.
-
-- --max-steps  
-  Maximum episode length for the environment run. This is separate from --bound. The machine may halt early while the episode continues for additional steps, or the inert policy may use all available steps without reaching the goal.
-
-- --render  
-  Optional flag to render a textual view of the grid environment and agent movement.
+Argument summary (high signal):
+- `--program` - selects a sample machine program, for example `halt` or `loop`
+- `--x` - input value to the machine program
+- `--bound` - step bound `B` for the machine simulation
+  - If `P(x)` has not halted after `B` steps, the simulation reports a timeout, not a proof of non-halting
+- `--max-steps` - maximum episode length for the environment run (separate from `--bound`)
+- `--render` - prints a textual view of the grid environment and agent movement
 
 In short:
+- `--bound` controls how long you trust the simulated `P(x)` before treating it as a timeout.
+- `--max-steps` controls how long you let the agent act in the environment before declaring failure on liveness.
 
-- --bound controls how long you trust the simulated program P(x) before treating it as a timeout.
-- --max-steps controls how long you let the agent act in the environment before declaring failure on liveness.
+## Repository map
 
-Environment note:
+Code path:
+- `src/computational_autonomy/machine.py` - machine model, sample programs, bounded simulation API
+- `src/computational_autonomy/reduction.py` - runs the machine once, selects goal-seeking or inert policy
+- `src/computational_autonomy/environment.py` - grid, hazards, goals, safety and liveness checks
+- `src/computational_autonomy/cli.py` - wires everything and exposes `autonomy-demo`
 
-- build_default_environment() builds the fixed 5x5 grid. CLI flags do not change the grid size or layout.
+Theory path:
+- [start_here.md](start_here.md) - entry point for the theory sequence
+- [theory/definitions.md](theory/definitions.md) - project definitions and terminology
+- [theory/proof_note.md](theory/proof_note.md) - proof sketch connecting Rice's Theorem, halting reduction, and computational autonomy
 
-## 6. Repository map
+## Theory notes
 
-### 6.1 Code path
+### Rice's Theorem
 
-- src/computational_autonomy/machine.py  
-  Defines the machine model, sample programs, and the bounded simulation API.
+Rice's Theorem states that any nontrivial semantic property of partial computable functions is undecidable. Once computational autonomy is framed as a semantic property of program behavior, it falls under this limit.
 
-- src/computational_autonomy/reduction.py  
-  Runs the machine once, then selects the Goal Seeking or Inert policy based on bounded halting behavior.
+### Reduction argument (why halting shows up)
 
-- src/computational_autonomy/environment.py  
-  Defines the grid, hazards, goals, and the checks used for safety and liveness.
-
-- src/computational_autonomy/cli.py  
-  Wires the simulation together and exposes the autonomy-demo entry point.
-
-### 6.2 Theory path
-
-- [start_here.md](start_here.md)  
-  Entry point for the theory sequence.
-
-- [theory/definitions.md](theory/definitions.md)  
-  Project definitions and terminology.
-
-- [theory/proof_note.md](theory/proof_note.md)  
-  Proof sketch connecting Rice's Theorem, the halting reduction, and Computational Autonomy.
-
-## 7. Theoretical foundation
-
-### 7.1 Rice's Theorem
-
-Rice's Theorem states that any nontrivial semantic property of partial computable functions is undecidable. Once Computational Autonomy is framed as a semantic property of program behavior, it falls under this limit.
-
-### 7.2 Reduction argument
-
-A standard many one reduction uses two witness programs: one that satisfies the target property and one that does not. Given P and x, construct Q that behaves like the positive witness if P halts on x, and like the negative witness otherwise. If a decider existed for the property of Q, it would decide halting for P, which is impossible.
+A standard many-one reduction uses two witness programs: one that satisfies the target property and one that does not. Given `P` and `x`, construct `Q` that behaves like the positive witness if `P` halts on `x`, and like the negative witness otherwise. If a decider existed for the property of `Q`, it would decide halting for `P`, which is impossible.
 
 This repository mirrors that construction in bounded form:
-
-- Machine simulation encodes the halting witness.
+- Machine simulation encodes the halting witness (bounded).
 - Policy selection encodes the branch on the bounded halting outcome.
-- Environment evaluation encodes the Bounded Autonomy decision.
+- Environment evaluation encodes the bounded autonomy decision.
 
-The proof of undecidability for full Computational Autonomy lives in the theory notes. The code shows the reduction pattern under explicit bounds.
+## Practical implications
 
-## 8. Practical implications
-
-This work blocks a universal, unbounded checker for Computational Autonomy. It does not block strong guarantees under constraints.
+This work blocks a universal, unbounded checker for computational autonomy. It does not block strong guarantees under constraints.
 
 In practice, assurance for autonomous systems comes from:
-
 - Time limits and watchdog bounds.
 - Finite state abstractions and restricted models.
-- Contract based reasoning and compositional proofs.
-- Targeted verification of specific Bounded Autonomy properties.
+- Contract-based reasoning and compositional proofs.
+- Targeted verification of specific bounded properties.
 
-The demo reflects this reality. It implements an exact bounded check that is informative while remaining consistent with undecidability limits at the unbounded level.
+## Verification (local quality gate)
 
-### 8.1 What this is not
+CI runs:
+- `ruff check .` and `ruff format --check .`
+- `mypy src` (strict)
+- `pytest --cov` with coverage gate at 85 percent
 
-This project is not:
-
-- A safety certification tool for real autonomous systems.
-- A general purpose verifier for arbitrary autonomy properties.
-- A production grade environment or reinforcement learning framework.
-- A halting solver or a workaround for Rice's Theorem.
-
-It is a focused, didactic demonstration of how a reduction from halting to an autonomy style property works and why any attempt to universalize that procedure runs into undecidability.
-
-## 9. Verification
-
-Run the local checks:
-
+Run locally with `uv`:
 ```bash
+uv sync --dev
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+uv run pytest --cov
+```
+
+Run locally with `pip`:
+```bash
+pip install -e ".[dev]"
 ruff check .
 ruff format --check .
 mypy src
 pytest --cov
 ```
 
-These commands enforce style, basic static typing, and test coverage for the core logic.
+## Troubleshooting
 
-## 10. Troubleshooting
+1) No output appears
+- Confirm your environment is active and installation completed without errors.
 
-1. No output appears  
-   Confirm the virtual environment is active and that pip install . or pip install -e ".[dev]" completed without errors.
+2) CLI entry point not found
+- Reinstall in editable mode:
+```bash
+pip install -e ".[dev]"
+```
 
-2. CLI entry point not found  
-   Reinstall in editable mode:
+3) Movement seems unexpected
+- Confirm you are using the default environment settings. The grid topology is fixed by `build_default_environment()`.
 
-   ```bash
-   pip install -e ".[dev]"
-   ```
+4) Runs take longer than expected
+- Lower `--max-steps` and `--bound` to control workload.
 
-3. Movement seems unexpected  
-   Confirm you are using the default environment settings. The grid topology is fixed by build_default_environment().
+## FAQ
 
-4. Runs take longer than expected  
-   Lower --max-steps and --bound to control workload.
+Q: Does this mean meaningful autonomy guarantees are impossible?
+A: No. It means there is no universal unbounded procedure that decides computational autonomy for all programs. Within bounded models and constrained settings, you can still obtain strong, useful guarantees.
 
-## 11. FAQ
-
-Q: Does this mean meaningful autonomy guarantees are impossible?  
-A: No. It means there is no universal unbounded procedure that decides Computational Autonomy for all programs. Within bounded models and constrained settings, you can still obtain strong, useful guarantees.
-
-Q: Why does the code use a toy grid world?  
+Q: Why does the code use a toy grid world?
 A: The grid world keeps the environment finite, repeatable, and easy to inspect. That makes the reduction pattern visible without the noise of a full robotics or simulation stack.
 
-Q: Can I adapt this pattern to my own system?  
-A: You can adapt the idea of separating Computational Autonomy from Bounded Autonomy and making bounds explicit. Any adaptation must still respect undecidability at the unbounded level.
+Q: Does the bounded simulation approximate a halting oracle?
+A: No. It implements an exact bounded check: halting within `B` steps versus no halt within `B` steps yet. That distinction is central to the design.
 
-Q: Does the bounded simulation approximate a halting oracle?  
-A: No. It implements an exact bounded check: halting within B steps versus no halt within B steps yet. That distinction is central to the design.
+## Provenance and disclaimer
 
-## 12. Provenance and disclaimer
+Author - Bradley Saucier  
+Status - personal academic work for research and learning.
 
-Author: Bradley Saucier  
-Status: personal academic work for research and learning.
-
-This repository does not represent any employer, agency, or government organization. External contributions are not being solicited at this time.
+This repository does not represent any employer, agency, or government organization. See [DISCLAIMER.md](DISCLAIMER.md).

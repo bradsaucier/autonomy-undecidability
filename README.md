@@ -1,5 +1,5 @@
-[![quality-gate](https://github.com/bradsaucier/autonomy-undecidability/actions/workflows/quality_gate.yml/badge.svg)](https://github.com/bradsaucier/autonomy-undecidability/actions/workflows/quality_gate.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![quality-gate](https://img.shields.io/github/actions/workflow/status/bradsaucier/autonomy-undecidability/quality_gate.yml?style=flat-square)](https://github.com/bradsaucier/autonomy-undecidability/actions/workflows/quality_gate.yml)
+[![license](https://img.shields.io/github/license/bradsaucier/autonomy-undecidability?style=flat-square)](LICENSE)
 
 # Computational Autonomy and Undecidability
 
@@ -8,14 +8,14 @@
 
 ## Mission dashboard
 
-| Item | Status |
-| --- | --- |
-| Primary objective | Illustrate the theoretical limits of verifying autonomous software by enacting a bounded reduction. |
-| Core claim | If "full computational autonomy" is modeled as a nontrivial semantic property of program behavior, then no algorithm can decide it for all programs and inputs (Rice's Theorem). |
-| What is implemented | Exact bounded checks only: "halts within B steps" and "bounded autonomy within max-steps." |
-| What is not implemented | Any unbounded decider for halting or autonomy. |
-| Runtime | Python 3.10+ (CI runs 3.10, 3.11, 3.12). Repo defaults to Python 3.12 via `.python-version`. |
-| Fastest install path | `uv` workflow (matches CI). |
+| Item               | Status                                                                                                                |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------|
+| Primary objective  | Illustrate the theoretical limits of verifying autonomous software by enacting a bounded reduction.                   |
+| Core claim         | If "full computational autonomy" is modeled as a nontrivial semantic property of program behavior, then no algorithm can decide it for all programs and inputs (Rice's Theorem). |
+| What is implemented| Exact bounded checks only: "halts within B steps" and "bounded autonomy within max-steps."                            |
+| What is not        | Any unbounded decider for halting or autonomy.                                                                        |
+| Runtime            | Python 3.10+ (CI runs 3.10, 3.11, 3.12). Repo defaults to Python 3.12 via `.python-version`.                         |
+| Fastest install    | `uv` workflow (matches CI).                                                                                           |
 
 ## Mission overview (first 60 seconds)
 
@@ -30,34 +30,34 @@ What you will do here - Run a small Python demo that:
 
 ## Choose your path (hub and spoke)
 
-| If your mission is | Go to |
-| --- | --- |
-| Run it now | [Execution](#execution---quick-start) |
-| Trace the reduction (theory to code) | [Concept of operations](#concept-of-operations-conops) |
-| Audit scope and limits (skeptic mode) | [Scope and constraints](#scope-and-constraints) |
-| Read the proof sketch | [Theory notes](#theory-notes) |
-| Navigate the codebase | [Repository map](#repository-map) |
+| If your mission is                      | Go to                                             |
+|-----------------------------------------|---------------------------------------------------|
+| Run it now                              | [Execution](#execution---quick-start)             |
+| Trace the reduction (theory to code)    | [Concept of operations](#concept-of-operations-conops) |
+| Audit scope and limits (skeptic mode)   | [Scope and constraints](#scope-and-constraints)   |
+| Read the proof sketch                   | [Theory notes](#theory-notes)                     |
+| Navigate the codebase                   | [Repository map](#repository-map)                 |
 
 ## SMEAC map (operator navigation)
 
-| SMEAC element | In this README |
-| --- | --- |
-| Situation | Mission overview, scope and constraints |
-| Mission | Capability profile (what is checked, and what is not) |
-| Execution | Quick start, CLI reference, interpreting outputs |
-| Admin and logistics | Requirements, verification, troubleshooting |
-| Command and signal | Provenance and disclaimer |
+| SMEAC element          | In this README                                     |
+|------------------------|----------------------------------------------------|
+| Situation              | Mission overview, scope and constraints            |
+| Mission                | Capability profile (what is checked, and what is not) |
+| Execution              | Quick start, CLI reference, interpreting outputs   |
+| Admin and logistics    | Requirements, verification, troubleshooting        |
+| Command and signal     | Provenance and disclaimer                          |
 
 ## Scope and constraints
 
 This README is a funnel, not a filter. Two statements are non-negotiable:
 
 1) This repository does not solve the Halting Problem.
-1) It implements an exact bounded check: "halts within B steps" vs "has not halted within B steps yet."
+   a) It implements an exact bounded check: "halts within B steps" vs "has not halted within B steps yet."
 
 2) This repository is not a safety certification tool for real autonomous systems.
-1) The environment is a fixed toy grid world to make the reduction structure inspectable.
-2) Any language about "autonomy" is computational and semantic, not a claim about real-world operational safety.
+   a) The environment is a fixed toy grid world to make the reduction structure inspectable.
+   b) Any language about "autonomy" is computational and semantic, not a claim about real-world operational safety.
 
 What you can verify here (bounded):
 1) Given a chosen witness program and input, whether `P(x)` halts within `B` steps.
@@ -67,7 +67,8 @@ What you cannot verify here (unbounded):
 1) Whether an arbitrary program halts (full halting).
 2) Whether an arbitrary agent is safe and reaches the goal for all time and all inputs (full computational autonomy).
 
-Non-affiliation - This is personal academic work. It is not affiliated with, endorsed by, funded by, or representative of any employer, government organization, or agency. See [DISCLAIMER.md](DISCLAIMER.md).
+> [!IMPORTANT]
+> Non-affiliation: This is personal academic work. It is not affiliated with, endorsed by, funded by, or representative of any employer, government organization, or agency. See [DISCLAIMER.md](DISCLAIMER.md).
 
 ## Execution - Quick start
 
@@ -127,15 +128,16 @@ pip install -e ".[dev]"
 
 The CLI prints three summary lines:
 
-| Field | Meaning |
-| --- | --- |
-| `safe=True|False` | True means the agent never entered a hazard cell. |
+| Field             | Meaning                                                                                                                                            |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `safe=True|False` | True means the agent never entered a hazard cell.                                                                                                  |
 | `success=True|False` | True means the agent reached the goal and emitted the success signal. In this reduction, `success=True` is expected for a halting witness (within bounds). `success=False` is expected for a non-halting or timeout witness (within bounds), because the inert policy fails liveness by design. |
-| `steps=<int>` | The number of environment ticks executed before termination. |
+| `steps=<int>`     | The number of environment ticks executed before termination.                                                                                         |
 
-Important nuance:
-1) `success=False` does not distinguish "infinite loop" from "halts after B+1 steps."
-2) It indicates only "no halting was observed within the bound."
+> [!IMPORTANT]
+> Important nuance:
+> 1) `success=False` does not distinguish "infinite loop" from "halts after B+1 steps."
+> 2) It indicates only "no halting was observed within the bound."
 
 Example pattern (your exact grids and step counts may differ):
 ```text
@@ -148,11 +150,11 @@ steps=8
 
 This project distinguishes two levels of autonomy reasoning:
 
-| Level | Decision question | Implemented here |
-| --- | --- | --- |
-| Bounded halting | Given `P`, `x`, and step bound `B`: does `P(x)` halt within `B` steps | Yes |
-| Bounded autonomy | Given the constructed controller and environment: does the agent remain safe and reach the goal within finite limits | Yes |
-| Unbounded computational autonomy | The agent always achieves the objective safely across all time and inputs | No (target of the theory claim) |
+| Level                      | Decision question                                                                 | Implemented here              |
+|---------------------------|-----------------------------------------------------------------------------------|-------------------------------|
+| Bounded halting            | Given `P`, `x`, and step bound `B`: does `P(x)` halt within `B` steps             | Yes                           |
+| Bounded autonomy           | Given the constructed controller and environment: does the agent remain safe and reach the goal within finite limits | Yes |
+| Unbounded computational autonomy | The agent always achieves the objective safely across all time and inputs    | No (target of the theory claim) |
 
 The theoretical target is "computational autonomy" as an unbounded semantic property. The executable artifact is the bounded version above.
 
@@ -227,12 +229,12 @@ The operational property checked by this demo: under explicit bounds (`B` and `m
 
 Use this to connect the math story to concrete artifacts.
 
-| Claim or artifact | Where in code | What you can observe |
-| --- | --- | --- |
-| Bounded halting check: halt within B vs timeout at B | `src/computational_autonomy/machine.py` | `--bound B` affects whether the controller branches to goal-seeking vs inert |
-| Reduction branch (policy selection) | `src/computational_autonomy/reduction.py` | Halting witness within bound tends to produce `success=True`; timeout within bound tends to produce `success=False` |
-| Safety and liveness evaluation | `src/computational_autonomy/environment.py` | CLI prints `safe=...`, `success=...`, `steps=...` |
-| CLI wiring and defaults | `src/computational_autonomy/cli.py` | Defaults: `x=10`, `bound=200`, `max-steps=60` |
+| Claim or artifact                                      | Where in code                                  | What you can observe                                                                 |
+|-------------------------------------------------------|------------------------------------------------|--------------------------------------------------------------------------------------|
+| Bounded halting check: halt within B vs timeout at B   | `src/computational_autonomy/machine.py`        | `--bound B` affects whether the controller branches to goal-seeking vs inert         |
+| Reduction branch (policy selection)                   | `src/computational_autonomy/reduction.py`      | Halting witness within bound tends to produce `success=True`; timeout within bound tends to produce `success=False` |
+| Safety and liveness evaluation                         | `src/computational_autonomy/environment.py`    | CLI prints `safe=...`, `success=...`, `steps=...`                                    |
+| CLI wiring and defaults                                | `src/computational_autonomy/cli.py`            | Defaults: `x=10`, `bound=200`, `max-steps=60`                                        |
 
 ## Execution details (CLI reference)
 
@@ -248,13 +250,13 @@ python -m computational_autonomy.cli --program halt --x 10 --bound 200 --max-ste
 
 Argument summary (high signal):
 
-| Argument | Purpose | Notes |
-| --- | --- | --- |
-| `--program` | selects a sample machine program | for example `halt` or `loop` |
-| `--x` | input value to the machine program | integer |
-| `--bound` | step bound `B` for the machine simulation | timeout at `B` is not proof of non-halting |
-| `--max-steps` | maximum episode length for the environment run | separate from `--bound` |
-| `--render` | prints a textual view of the grid environment and agent movement | operator visualization |
+| Argument      | Purpose                                 | Notes                                 |
+|--------------|------------------------------------------|---------------------------------------|
+| `--program`  | selects a sample machine program         | for example `halt` or `loop`          |
+| `--x`        | input value to the machine program       | integer                               |
+| `--bound`    | step bound `B` for the machine simulation| timeout at `B` is not proof of non-halting |
+| `--max-steps`| maximum episode length for the environment run | separate from `--bound`         |
+| `--render`   | prints a textual view of the grid environment and agent movement | operator visualization |
 
 In short:
 1) `--bound` controls how long you trust the simulated `P(x)` before treating it as a timeout.
@@ -262,15 +264,15 @@ In short:
 
 ## Repository map
 
-| Area | Path | Purpose |
-| --- | --- | --- |
-| Machine model and bounded simulation | `src/computational_autonomy/machine.py` | machine model, sample programs, bounded simulation API |
-| Reduction logic | `src/computational_autonomy/reduction.py` | runs the machine once, selects goal-seeking or inert policy |
-| Environment | `src/computational_autonomy/environment.py` | grid, hazards, goals, safety and liveness checks |
-| CLI | `src/computational_autonomy/cli.py` | wires everything and exposes `autonomy-demo` |
-| Theory entry point | [start_here.md](start_here.md) | entry point for the theory sequence |
-| Definitions | [theory/definitions.md](theory/definitions.md) | project definitions and terminology |
-| Proof sketch | [theory/proof_note.md](theory/proof_note.md) | proof sketch connecting Rice's Theorem, halting reduction, and computational autonomy |
+| Area                          | Path                                       | Purpose                                                                 |
+|------------------------------|--------------------------------------------|-------------------------------------------------------------------------|
+| Machine model and bounded simulation | `src/computational_autonomy/machine.py` | machine model, sample programs, bounded simulation API                  |
+| Reduction logic              | `src/computational_autonomy/reduction.py`  | runs the machine once, selects goal-seeking or inert policy             |
+| Environment                  | `src/computational_autonomy/environment.py`| grid, hazards, goals, safety and liveness checks                        |
+| CLI                          | `src/computational_autonomy/cli.py`        | wires everything and exposes `autonomy-demo`                            |
+| Theory entry point           | [start_here.md](start_here.md)             | entry point for the theory sequence                                     |
+| Definitions                  | [theory/definitions.md](theory/definitions.md) | project definitions and terminology                               |
+| Proof sketch                 | [theory/proof_note.md](theory/proof_note.md) | proof sketch connecting Rice's Theorem, halting reduction, and computational autonomy |
 
 ## Theory notes
 
@@ -324,12 +326,12 @@ pytest --cov
 
 ## Troubleshooting
 
-| Symptom | Check | Corrective action |
-| --- | --- | --- |
-| No output appears | environment active, install completed | re-run install, then rerun `autonomy-demo` |
-| CLI entry point not found | package not installed in environment | `pip install -e ".[dev]"` |
-| Movement seems unexpected | environment settings | confirm default environment via `build_default_environment()` |
-| Runs take longer than expected | bounds too high | lower `--max-steps` and `--bound` |
+| Symptom                   | Check                               | Corrective action                              |
+|--------------------------|--------------------------------------|------------------------------------------------|
+| No output appears         | environment active, install completed| re-run install, then rerun `autonomy-demo`     |
+| CLI entry point not found | package not installed in environment | `pip install -e ".[dev]"`                      |
+| Movement seems unexpected | environment settings                 | confirm default environment via `build_default_environment()` |
+| Runs take longer than expected | bounds too high                  | lower `--max-steps` and `--bound`              |
 
 ## FAQ
 

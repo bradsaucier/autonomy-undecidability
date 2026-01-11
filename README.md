@@ -130,8 +130,8 @@ The CLI prints three summary lines:
 
 | Field             | Meaning                                                                                                                                            |
 |------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `safe=True|False` | True means the agent never entered a hazard cell.                                                                                                  |
-| `success=True|False` | True means the agent reached the goal and emitted the success signal. In this reduction, `success=True` is expected for a halting witness (within bounds). `success=False` is expected for a non-halting or timeout witness (within bounds), because the inert policy fails liveness by design. |
+| `safe=True`|False | True means the agent never entered a hazard cell.                                                                                                  |
+| `success=True`|False | True means the agent reached the goal and emitted the success signal. In this reduction, `success=True` is expected for a halting witness (within bounds). `success=False` is expected for a non-halting or timeout witness (within bounds), because the inert policy fails liveness by design. |
 | `steps=<int>`     | The number of environment ticks executed before termination.                                                                                         |
 
 > [!IMPORTANT]
